@@ -19,6 +19,7 @@ import { cc } from "../utils/cc";
 import { EVENT_COLORS, useEvents } from "../context/useEvents";
 import { Modal, ModalProps } from "./Modal";
 import { Event, UnionOmit } from "../context/Events";
+import { OverflowContainer } from "./OverflowContainer";
 
 export function Calender() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -95,6 +96,8 @@ function CalenderDay({
 }: CalenderDayProps) {
   const [isNewEventModalOpen, setisNewEventOpenModal] = useState(false);
   const { addEvent } = useEvents();
+  const [isViewMoreEventModalOpen, setIsViewMoreEventModalOpen] =
+    useState(false);
 
   const sortedEvents = useMemo(() => {
     const timeToNumber = (time: string) => parseFloat(time.replace(":", "."));
@@ -136,14 +139,27 @@ function CalenderDay({
         </button>
       </div>
       {sortedEvents.length > 0 && (
-        <div className='events'>
-          {sortedEvents.map((event) => (
-            <CalenderEvent
-              event={event}
-              key={event.id}
-            />
-          ))}
-        </div>
+        <OverflowContainer
+          className='events'
+          items={sortedEvents}
+          getKey={(event) => event.id}
+          renderItem={(event) => <CalenderEvent event={event} />}
+          renderOverflow={(amount) => (
+            <>
+              <button
+                onClick={() => setIsViewMoreEventModalOpen(true)}
+                className='events-view-more-btn'
+              >
+                +{amount} More
+              </button>
+              <ViewMoreCalendarEventsModal
+                events={sortedEvents}
+                isOpen={isViewMoreEventModalOpen}
+                onClose={() => setIsViewMoreEventModalOpen(false)}
+              />
+            </>
+          )}
+        />
       )}
       {/*  */}
       <EventFormModal
@@ -153,6 +169,39 @@ function CalenderDay({
         onSubmit={addEvent}
       />
     </div>
+  );
+}
+
+type ViewMoreCalendarEventsModalProps = {
+  events: Event[];
+} & Omit<ModalProps, "children">;
+
+function ViewMoreCalendarEventsModal({
+  events,
+  ...modalProps
+}: ViewMoreCalendarEventsModalProps) {
+  if (events.length === 0) return null;
+
+  return (
+    <Modal {...modalProps}>
+      <div className='modal-title'>
+        <small>{formatDate(events[0].date, { dateStyle: "short" })}</small>
+        <button
+          className='close-btn'
+          onClick={modalProps.onClose}
+        >
+          &times;
+        </button>
+      </div>
+      <div className='events'>
+        {events.map((event) => (
+          <CalenderEvent
+            event={event}
+            key={event.id}
+          />
+        ))}
+      </div>
+    </Modal>
   );
 }
 
